@@ -1,0 +1,163 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.3.3
+Created On: 20.11.2025 13:19:00
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Program    :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00000000                             7                  
+00000000                             8          
+00000064                             9          ORG $64 ; Autovektor-Interrupt 1
+00000064= 0000106C                  10          DC.L AV1_HANDLER
+00000068                            11          ORG $68 ; Autovektor-Interrupt 2
+00000068= 00001098                  12          DC.L AV2_HANDLER
+00000084                            13          ORG $84 ; Siehe Vektor S.25 Interrupts, Softwareinterrupt 1
+00000084= 00001068                  14          DC.L TRAP_1_HANDLER
+00000088                            15          
+00000088                            16          
+00000800                            17          ORG $800
+00000800                            18  
+00000800                            19  PUNKTE
+00000800                            20          DS.L 1
+00000804                            21  GAMEOVER
+00000804                            22          DS.L 1
+00000808                            23          
+00001000                            24          ORG     $1000
+00001000                            25  START:                          
+00001000  7401                      26          MOVEQ #1, D2
+00001002                            27          ;MOVE.W #$2000, SR ; Supervisor Mode on
+00001002  42B8 0800                 28          CLR.L PUNKTE ; Punkte clearen
+00001006  42B8 0804                 29          CLR.L GAMEOVER
+0000100A                            30  LOOP:   
+0000100A                            31          ; Gucken ob spiel vorbei
+0000100A  0CB8 00000015 0800        32          CMPI.L #21, PUNKTE
+00001012  6E00 0046                 33          BGT VERLOREN
+00001016  6700 0034                 34          BEQ GEWONNEN
+0000101A                            35          
+0000101A  0CB8 00000001 0804        36          CMPI.L #1, GAMEOVER
+00001022  6700 0018                 37          BEQ EXIT
+00001026                            38  
+00001026  0C82 00000006             39          CMPI.L #6, D2
+0000102C  6600 0008                 40          BNE NEXT
+00001030  4E41                      41          TRAP #1
+00001032                            42          
+00001032  4EF8 100A                 43          JMP LOOP
+00001036                            44  NEXT:
+00001036  5282                      45          ADD.L #1, D2
+00001038  4EF8 100A                 46          JMP LOOP                
+0000103C                            47          
+0000103C                            48  EXIT:   
+0000103C                            49          ; MOVEM.L (A7)+, D0-D1/A0-A1
+0000103C  43F9 000010C6             50          LEA TXT_END, A1
+00001042  700E                      51          MOVE.L #14, D0
+00001044  4E4F                      52          TRAP #15
+00001046                            53  
+00001046  103C 0009                 54          MOVE.B  #9,D0
+0000104A  4E4F                      55          TRAP    #15             ; halt simulator
+0000104C                            56  
+0000104C                            57  GEWONNEN:
+0000104C  43F9 00001104             58          LEA TXT_WIN, A1    ; Adresse des Textes in A1 laden
+00001052  700E                      59          MOVE.L #14, D0      ; Task 14: String ausgeben
+00001054  4E4F                      60          TRAP #15
+00001056  4EF8 103C                 61          JMP EXIT
+0000105A                            62          
+0000105A                            63  VERLOREN:
+0000105A  43F9 0000111E             64          LEA TXT_LOSE, A1
+00001060  700E                      65          MOVE.L #14, D0
+00001062  4E4F                      66          TRAP #15
+00001064  4EF8 103C                 67          JMP EXIT
+00001068                            68  
+00001068                            69  TRAP_1_HANDLER:
+00001068  7401                      70          MOVE.L #1, D2
+0000106A  4E73                      71          RTE
+0000106C                            72  
+0000106C                            73  AV1_HANDLER:
+0000106C                            74                  
+0000106C                            75          ; MOVE.L D1, -(A7) ; D1 retten
+0000106C  48E7 C040                 76          MOVEM.L D0-D1/A1, -(SP)
+00001070                            77          
+00001070                            78          ;LEA PUNKTE, A0
+00001070                            79          ;MOVE.L (A0), D1
+00001070  2238 0800                 80          MOVE.L PUNKTE, D1
+00001074  D282                      81          ADD.L D2, D1
+00001076  21C1 0800                 82          MOVE.L D1, PUNKTE
+0000107A                            83          
+0000107A  43F9 000010D6             84          LEA TXT_PUNKTE, A1      ; Adresse vom Text in A1 laden
+00001080  700E                      85          MOVE.L #14, D0          ; Task 14: String ausgeben
+00001082  4E4F                      86          TRAP #15
+00001084                            87  
+00001084                            88          ; Jetzt die Zahl in D1 ausgeben
+00001084  7014                      89          MOVE.L #20, D0          ; Task 20: Zahl in D1 als Dezimalzahl ausgeben
+00001086  4E4F                      90          TRAP #15
+00001088                            91          
+00001088                            92          ; Einen Zeilenumbruch machen (für die Optik)
+00001088  43F9 00001132             93          LEA NEWLINE, A1
+0000108E  700E                      94          MOVE.L #14, D0
+00001090  4E4F                      95          TRAP #15
+00001092                            96          
+00001092                            97          ; MOVE.L D1, (A0)
+00001092                            98                          
+00001092                            99          ; MOVE.L (A7)+, D1 ; D1 wieder holen
+00001092  4CDF 0203                100          MOVEM.L (A7)+, D0-D1/A1
+00001096  4E73                     101          RTE
+00001098                           102          
+00001098                           103  AV2_HANDLER
+00001098                           104  
+00001098  48E7 C040                105          MOVEM.L D0-D1/A1, -(SP)
+0000109C                           106          
+0000109C  21FC 00000001 0804       107          MOVE.L #1, GAMEOVER
+000010A4                           108          
+000010A4  2238 0800                109          MOVE.L PUNKTE, D1
+000010A8                           110          
+000010A8  43F9 000010E8            111          LEA TXT_FINAL, A1       
+000010AE  700E                     112          MOVE.L #14, D0          
+000010B0  4E4F                     113          TRAP #15
+000010B2                           114  
+000010B2  7014                     115          MOVE.L #20, D0          
+000010B4  4E4F                     116          TRAP #15
+000010B6                           117          
+000010B6  43F9 00001132            118          LEA NEWLINE, A1
+000010BC  700E                     119          MOVE.L #14, D0
+000010BE  4E4F                     120          TRAP #15
+000010C0                           121          
+000010C0  4CDF 0203                122          MOVEM.L (A7)+, D0-D1/A1
+000010C4                           123          
+000010C4  4E73                     124          RTE
+000010C6                           125  
+000010C6                           126  * Variables and Strings
+000010C6= 53 70 69 65 6C 20 ...    127  TXT_END:        DC.B 'Spiel Beendet', 13, 10, 0
+000010D6= 41 6B 74 75 65 6C ...    128  TXT_PUNKTE:     DC.B 'Aktuelle Punkte: ', 0
+000010E8= 41 75 73 67 65 73 ...    129  TXT_FINAL       DC.B 'Ausgestiegen, Endergebnis: ', 0
+00001104= 47 6C 75 65 63 6B ...    130  TXT_WIN:        DC.B 'Glueckwunsch! GEWONNEN!', 13, 10, 0
+0000111E= 53 63 68 61 64 65 ...    131  TXT_LOSE:       DC.B 'Schade! VERLOREN!', 13, 10, 0
+00001132= 0D 0A 00                 132  NEWLINE:        DC.B 13, 10, 0  
+00001135                           133  
+00001135                           134          END     START           ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+AV1_HANDLER         106C
+AV2_HANDLER         1098
+EXIT                103C
+GAMEOVER            804
+GEWONNEN            104C
+LOOP                100A
+NEWLINE             1132
+NEXT                1036
+PUNKTE              800
+START               1000
+TRAP_1_HANDLER      1068
+TXT_END             10C6
+TXT_FINAL           10E8
+TXT_LOSE            111E
+TXT_PUNKTE          10D6
+TXT_WIN             1104
+VERLOREN            105A

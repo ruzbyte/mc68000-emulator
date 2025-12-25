@@ -1,0 +1,227 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.3.3
+Created On: 11.12.2025 13:03:31
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Titel:   Zufallszahlen (4 Stk) & Bubble Sort (FIXED)
+00000000                             3  * Autor:   Gemini
+00000000                             4  *-----------------------------------------------------------
+00000000                             5  
+00000000                             6  *--- Konstanten ---
+00000000  =00000010                  7  MAX_COUNT   EQU 16           ; Array Länge (Test auf 4)
+00000000  =0000000D                  8  CR          EQU 13          ; CR steht für 13 (ASCII Zeilenumbruch Anfang)
+00000000  =0000000A                  9  LF          EQU 10          ; LF ASCII für Line Feed / Neue Zeile
+00000000                            10  
+00000000                            11  *--- Vektoren ---
+00000064                            12      ORG    $64              ; AV1 -> Würfeln
+00000064= 0000205A                  13      DC.L   ISR_WURFELN
+00000068                            14      ORG    $68              ; AV2 -> Abbruch
+00000068= 000020A8                  15      DC.L   ISR_STOP
+0000006C                            16  
+0000006C                            17  *--- Variablen ---
+00001000                            18      ORG    $1000
+00001000                            19  ARRAY_START: DS.B    MAX_COUNT   ; Platz für n (hier 4) Bytes im Array
+00001010= 0000                      20  ANZAHL:      DC.W    0           ; Anzahl Elemente direkt dahinter speichern
+00001012= 0000                      21  FLAG_FERTIG: DC.W    0           
+00001014= 44 72 75 65 63 6B ...     22  TXT_START:   DC.B    'Druecke I1 (16x).',CR,LF,'Eingabe: ',0
+00001031= 0D 0A 53 6F 72 74 ...     23  TXT_SORT:    DC.B    CR,LF,'Sortiert: ',0
+0000103E= 2C 20 00                  24  TXT_KOMMA:   DC.B    ', ',0
+00001041                            25  
+00001041                            26  *--- Programmstart ---
+00002000                            27      ORG    $2000
+00002000                            28  START:
+00002000  4280                      29      CLR.L   D0              ; Zufalls-Zähler
+00002002                            30  
+00002002  43F8 1014                 31      LEA     TXT_START,A1
+00002006  103C 000E                 32      MOVE.B  #14,D0
+0000200A  4E4F                      33      TRAP    #15
+0000200C                            34      
+0000200C                            35  * Random generator, Bubble sort execute, wenn Array voll
+0000200C                            36  W_LOOP:
+0000200C  5280                      37      ADDQ.L  #1,D0           ; Zufall
+0000200E  4A78 1012                 38      TST.W   FLAG_FERTIG
+00002012  67F8                      39      BEQ     W_LOOP
+00002014                            40      
+00002014                            41      * Sortieren (Nur wenn Elemente da sind)
+00002014  3238 1010                 42      MOVE.W  ANZAHL,D1
+00002018  48C1                      43      EXT.L   D1
+0000201A  0C81 00000001             44      CMPI.L   #1,D1
+00002020  6F00 000E                 45      BLE     SKIP_SORT       ; Bei 0 oder 1 Element nicht sortieren
+00002024                            46  
+00002024  2F01                      47      MOVE.L  D1,-(A7)        ; Param 2: Länge
+00002026  4878 1000                 48      PEA     ARRAY_START     ; Param 1: Adresse
+0000202A  6100 0084                 49      BSR     BUBBLE_SORT
+0000202E  508F                      50      ADDA.L  #8,A7
+00002030                            51  
+00002030                            52  * Sort fertig
+00002030                            53  SKIP_SORT:
+00002030                            54      * Ausgabe Header "Sortiert:"
+00002030  43F8 1031                 55      LEA     TXT_SORT,A1
+00002034  103C 000E                 56      MOVE.B  #14,D0
+00002038  4E4F                      57      TRAP    #15
+0000203A                            58  
+0000203A                            59      * Ausgabe Array
+0000203A  3238 1010                 60      MOVE.W  ANZAHL,D1
+0000203E  48C1                      61      EXT.L   D1              ; D1 auf 32Bit erweitern            
+00002040  B2BC 00000000             62      CMP.L   #0,D1           ; Leer?
+00002046  6700 000E                 63      BEQ     ENDE
+0000204A                            64  
+0000204A  2F01                      65      MOVE.L  D1,-(A7)        ; Param 2: Länge
+0000204C  4878 1000                 66      PEA     ARRAY_START     ; Param 1: Adresse
+00002050  6100 009C                 67      BSR     PRINT_ARRAY
+00002054  508F                      68      ADDA.L  #8,A7
+00002056                            69  
+00002056                            70  * Programmende
+00002056                            71  ENDE:
+00002056  7009                      72      MOVE.L  #9,D0
+00002058  4E4F                      73      TRAP    #15
+0000205A                            74  
+0000205A                            75  *-----------------------------------------------------------
+0000205A                            76  * ISR_WURFELN (AV1)
+0000205A                            77  *-----------------------------------------------------------
+0000205A                            78  ISR_WURFELN:
+0000205A  48E7 E0C0                 79      MOVEM.L D0-D2/A0-A1,-(A7) ; Register retten 
+0000205E                            80  
+0000205E                            81      * Wenn größer/gleich Exit (0 abfangen)
+0000205E  3238 1010                 82      MOVE.W  ANZAHL,D1
+00002062  0C41 0010                 83      CMPI.W  #MAX_COUNT,D1
+00002066  6C00 003A                 84      BGE     AV1_SKIP
+0000206A                            85          
+0000206A                            86      * Array Adresse holen       
+0000206A  41F8 1000                 87      LEA     ARRAY_START,A0
+0000206E  1180 1000                 88      MOVE.B  D0,0(A0,D1.W)   ; Speichern
+00002072                            89      
+00002072                            90      * Ausgabe Gewürfelte Zahl
+00002072  2200                      91      MOVE.L  D0,D1
+00002074  0281 000000FF             92      ANDI.L  #$FF,D1
+0000207A  103C 0003                 93      MOVE.B  #3,D0
+0000207E  4E4F                      94      TRAP    #15
+00002080  43F8 103E                 95      LEA     TXT_KOMMA,A1
+00002084  103C 000E                 96      MOVE.B  #14,D0
+00002088  4E4F                      97      TRAP    #15
+0000208A                            98      
+0000208A                            99      
+0000208A                           100      * Anzahl Zahlen in Variable speichern
+0000208A  3238 1010                101      MOVE.W  ANZAHL,D1
+0000208E  5241                     102      ADDQ.W  #1,D1
+00002090  31C1 1010                103      MOVE.W  D1,ANZAHL
+00002094                           104      
+00002094                           105      * Gucken ob fertig
+00002094  0C41 0010                106      CMPI.W  #MAX_COUNT,D1
+00002098  6600 0008                107      BNE     AV1_SKIP
+0000209C  31FC 0001 1012           108      MOVE.W  #1,FLAG_FERTIG
+000020A2                           109  
+000020A2                           110  * Wenn Würfeln fertig, Register freigeben und RTE
+000020A2                           111  AV1_SKIP:
+000020A2  4CDF 0307                112      MOVEM.L (A7)+,D0-D2/A0-A1
+000020A6  4E73                     113      RTE
+000020A8                           114  
+000020A8                           115  *-----------------------------------------------------------
+000020A8                           116  * ISR_STOP (AV2)
+000020A8                           117  *-----------------------------------------------------------
+000020A8                           118  ISR_STOP:
+000020A8  31FC 0001 1012           119      MOVE.W  #1,FLAG_FERTIG
+000020AE  4E73                     120      RTE
+000020B0                           121  
+000020B0                           122  *-----------------------------------------------------------
+000020B0                           123  * BUBBLE_SORT
+000020B0                           124  *-----------------------------------------------------------
+000020B0                           125  BUBBLE_SORT:
+000020B0  4E56 0000                126      LINK    A6,#0
+000020B4  48E7 F8C0                127      MOVEM.L D0-D4/A0-A1,-(A7)
+000020B8                           128      
+000020B8  206E 0008                129      MOVE.L  8(A6),A0        ; Adresse
+000020BC  202E 000C                130      MOVE.L  12(A6),D0       ; Länge N
+000020C0                           131      
+000020C0  5580                     132      SUBQ.L  #2,D0           
+000020C2  6B00 0022                133      BMI     SORT_DONE       ; Wenn N < 2 war, fertig
+000020C6                           134  
+000020C6                           135  BS_OUTER:
+000020C6  2248                     136      MOVE.L  A0,A1           ; Reset Pointer auf Start
+000020C8  2200                     137      MOVE.L  D0,D1           ; Inner loop counter = Outer counter
+000020CA                           138      
+000020CA                           139  BS_INNER:
+000020CA  1411                     140      MOVE.B  (A1),D2         ; Wert A
+000020CC  1629 0001                141      MOVE.B  1(A1),D3        ; Wert B (Nachbar)
+000020D0                           142      
+000020D0  B403                     143      CMP.B   D3,D2
+000020D2  6300 0008                144      BLS     BS_NEXT         ; Wenn A <= B, alles gut
+000020D6                           145      
+000020D6                           146      * Swap
+000020D6  1283                     147      MOVE.B  D3,(A1)
+000020D8  1342 0001                148      MOVE.B  D2,1(A1)
+000020DC                           149  
+000020DC                           150  BS_NEXT:
+000020DC  5289                     151      ADDQ.L  #1,A1           ; Pointer eins weiter
+000020DE  51C9 FFEA                152      DBRA    D1,BS_INNER     ; Springe in inner mit dec
+000020E2  51C8 FFE2                153      DBRA    D0,BS_OUTER     ; Springe outer mit dec
+000020E6                           154  
+000020E6                           155  * Register freigeben, stack clr, und rts, fertig
+000020E6                           156  SORT_DONE:
+000020E6  4CDF 031F                157      MOVEM.L (A7)+,D0-D4/A0-A1
+000020EA  4E5E                     158      UNLK    A6
+000020EC  4E75                     159      RTS
+000020EE                           160  
+000020EE                           161  *-----------------------------------------------------------
+000020EE                           162  * PRINT_ARRAY
+000020EE                           163  *-----------------------------------------------------------
+000020EE                           164  PRINT_ARRAY:
+000020EE  4E56 0000                165      LINK    A6,#0
+000020F2  48E7 C1C0                166      MOVEM.L D0-D1/D7/A0-A1,-(A7) 
+000020F6                           167  
+000020F6  206E 0008                168      MOVE.L  8(A6),A0        ; Adresse
+000020FA  2E2E 000C                169      MOVE.L  12(A6),D7       ; Länge
+000020FE  5387                     170      SUBQ.L  #1,D7
+00002100  6B00 001A                171      BMI     PR_EXIT
+00002104                           172  
+00002104                           173  PR_LOOP:
+00002104  4281                     174      CLR.L   D1
+00002106  1218                     175      MOVE.B  (A0)+,D1        ; Zahl laden, A0 zeigt danach aufs nächste Byte.
+00002108  103C 0003                176      MOVE.B  #3,D0           ; Print Number
+0000210C  4E4F                     177      TRAP    #15
+0000210E                           178      
+0000210E  43F8 103E                179      LEA     TXT_KOMMA,A1
+00002112  103C 000E                180      MOVE.B  #14,D0          ; Print Komma
+00002116  4E4F                     181      TRAP    #15
+00002118                           182      
+00002118  51CF FFEA                183      DBRA    D7,PR_LOOP
+0000211C                           184  
+0000211C                           185  * Register freigeben, stack clr, fertig rts
+0000211C                           186  PR_EXIT:
+0000211C  4CDF 0383                187      MOVEM.L (A7)+,D0-D1/D7/A0-A1
+00002120  4E5E                     188      UNLK    A6
+00002122  4E75                     189      RTS
+00002124                           190  
+00002124                           191      END     START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ANZAHL              1010
+ARRAY_START         1000
+AV1_SKIP            20A2
+BS_INNER            20CA
+BS_NEXT             20DC
+BS_OUTER            20C6
+BUBBLE_SORT         20B0
+CR                  D
+ENDE                2056
+FLAG_FERTIG         1012
+ISR_STOP            20A8
+ISR_WURFELN         205A
+LF                  A
+MAX_COUNT           10
+PRINT_ARRAY         20EE
+PR_EXIT             211C
+PR_LOOP             2104
+SKIP_SORT           2030
+SORT_DONE           20E6
+START               2000
+TXT_KOMMA           103E
+TXT_SORT            1031
+TXT_START           1014
+W_LOOP              200C

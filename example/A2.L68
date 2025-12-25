@@ -1,0 +1,73 @@
+00001032 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.3.3
+Created On: 13.11.2025 15:16:36
+
+00000000                             1  ; Variablen
+00000800                             2          ORG $0800
+00000800= 00000002                   3  N:      DC.L 2
+00000804                             4  RESULT: DS.L 1          
+00000808                             5  
+00001000                             6          ORG $1000
+00001000                             7  ; pow2(n)
+00001000                             8  Pow2
+00001000  2F00                       9          MOVE.L D0,-(A7)         ; D0 (Ergebnis) auf Stack retten 
+00001002  2F01                      10          MOVE.L D1,-(A7)         ; D1 (n) auf Stack retten 
+00001004                            11          ; LINK A5,#-4           ; Speicherbereich für lokale Variable 'n' anlegen
+00001004                            12  
+00001004  202F 000C                 13          MOVE.L 12(A7),D0        ; lade n von Stack
+00001008                            14          ; MOVE.L D0,-4(A5)      ; lokale Variable anlegen, S.Folie
+00001008                            15          
+00001008                            16          ; IF N == 0 RET 1 (Basisfall)
+00001008  4A80                      17          TST.L D0
+0000100A  6700 0018                 18          BEQ .Ret_Base
+0000100E                            19  
+0000100E                            20          ; IF N > 0 
+0000100E  5380                      21          SUBI.L #1,D0            ; n = n-1
+00001010  2F00                      22          MOVE.L D0,-(A7)         ; n-1 auf stack
+00001012  61EC                      23          BSR Pow2                ; Rekursiver Aufruf pow2(n-1)
+00001014                            24  
+00001014  221F                      25          MOVE.L (A7)+,D1         ; Ergebnis in D1 schreiben
+00001016  7002                      26          MOVE.L #2,D0            ; Move 2 in D0
+00001018  C2C0                      27          MULU.W D0,D1            ; 2*2^n-1
+0000101A                            28          
+0000101A  2F41 000C                 29          MOVE.L D1,12(A7)        ; Ergebnis auf Stack schieben
+0000101E  4EF9 0000102C             30          JMP .Ret
+00001024                            31  
+00001024                            32  ; RETURN_BASE() => 1
+00001024                            33  .Ret_Base
+00001024  2F7C 00000001 000C        34          MOVE.L #1,12(A7)        ; 1 auf Stack schieben
+0000102C                            35  
+0000102C                            36  ; RETURN() 
+0000102C                            37  .Ret
+0000102C                            38          ; UNLK A5               ; free(*A5)
+0000102C  221F                      39          MOVE.L (A7)+,D1         ; Stack Ergebnis auf D1 schieben
+0000102E  201F                      40          MOVE.L (A7)+,D0         ; 
+00001030  4E75                      41          RTS                     ; Return
+00001032                            42  
+00001032                            43  ; int(void) main
+00001032                            44  START:
+00001032                            45          ; MOVE.L N,D1           ; Exponent n aus Hauptspeicher laden
+00001032  2F38 0800                 46          MOVE.L N,-(A7)  ; Parameter 'n' auf den Stack pushen 
+00001036  61C8                      47          BSR Pow2                ; Subroutine Pow2(n) aufrufen
+00001038                            48  
+00001038  201F                      49          MOVE.L (A7)+,D0         ; Ergebnis 2^n vom Stack holen 
+0000103A  21C0 0804                 50          MOVE.L D0,RESULT        ; Ergebnis in Hauptspeicher schreiben
+0000103E                            51          
+0000103E  7209                      52          MOVE.L #9,D1            ; Programmende
+00001040  4E4F                      53          TRAP #15
+00001042                            54          
+00001042                            55          END START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+N                   800
+POW2                1000
+POW2:RET            102C
+POW2:RET_BASE       1024
+RESULT              804
+START               1032
