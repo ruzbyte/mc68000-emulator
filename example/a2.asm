@@ -12,11 +12,11 @@ recursion_pow2
 	RTS
 	
 .recursive
-	MOVE.L D0, VALUE
+	MOVE.L D0, (SP)-
 	SUBI.L #1, D1
 	BSR recursion_pow2
 	
-	MOVE.L VALUE, D2
+	MOVE.L +(SP), D2
 	MULS D2, D0
 	RTS
 	

@@ -20,7 +20,7 @@ LOOP:       MULS    #2, D0
 
 DONE:       MOVEA.L #RESULT, A1   
             MOVE.L  D0, (A1)
-	    MOVE.L #9, D0       
+	        MOVE.L #9, D0       
             TRAP #15
 
             END     START
